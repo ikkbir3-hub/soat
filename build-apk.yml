@@ -1,0 +1,55 @@
+name: APK yig'ish
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodni yuklash
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Gradle kesh
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Kutubxonalarni o'rnatish
+        run: npm ci
+
+      - name: Android loyihasini yaratish
+        run: |
+          if [ ! -d android ]; then npx cap add android; fi
+
+      - name: Ikonkalarni yaratish
+        run: npx @capacitor/assets generate --android
+
+      - name: Veb fayllarni sinxronlash
+        run: npx cap sync android
+
+      - name: Debug APK yig'ish
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: APK ni yuklab olishga tayyorlash
+        uses: actions/upload-artifact@v4
+        with:
+          name: elektron-soat-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
